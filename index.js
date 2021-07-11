@@ -8,6 +8,7 @@ const emitter = new events.EventEmitter()
 const stdout = process.stdout
 
 const displayMessage = (msg) => {
+    stdout.clearLine()
     stdout.cursorTo(0, stdout.rows - 2)
     stdout.write(' '.repeat(stdout.columns))
     stdout.cursorTo(0, stdout.rows - 1)
@@ -18,7 +19,7 @@ const displayMessage = (msg) => {
 }
 
 const clearPrompt = (text) => {
-    stdout.cursorTo(0, stdout.rows - 2 - Math.ceil((text.length + 1) / stdout.columns))
+    stdout.cursorTo(0, stdout.rows - 2 - Math.ceil((text.length) / stdout.columns))
     stdout.write(' '.repeat(stdout.columns))
     stdout.cursorTo(0, stdout.rows - 1)
     console.log('-'.repeat(stdout.columns))
@@ -45,9 +46,7 @@ const server = http.createServer((req, res) => {
                 }))
                 break
             case 'message':
-                if (!(receiver === '127.0.0.1')) {
-                    displayMessage(chalk.cyan.bold(message.author + ': '), chalk.cyan(message.message))
-                }
+                displayMessage(chalk.cyan.bold(message.author + ': ') + chalk.cyan(message.message))
                 res.end(JSON.stringify({
                     type: 'none'
                 }))
@@ -59,9 +58,7 @@ const server = http.createServer((req, res) => {
                 }))
                 break
             case 'name':
-                if (!(receiver === '127.0.0.1')) {
                 displayMessage(chalk.cyan(message.author + ' changed their name'))
-                }
                 res.end(JSON.stringify({
                     type: 'none'
                 }))
@@ -78,6 +75,8 @@ let receiver
 
 console.clear()
 displayMessage(chalk.green.bold('Welcome to chatCLI!') + '\n' + chalk.green.italic('use .help once you answer these prompts to get started'))
+prompt.message = ''
+prompt.delimiter = ''
 prompt.start()
 
 emitter.on('name-start', () => {
@@ -96,7 +95,7 @@ emitter.on('name-start', () => {
 emitter.on('ip', () => {
     displayMessage(chalk.yellow('enter an server address: '))
     prompt.get(['ip'], function (err, result) {
-        clearPrompt('prompt: ip: ' + result.ip)
+        clearPrompt('ip ' + result.ip)
         if (err || !/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b/.test(result.ip)) {
             receiver = '127.0.0.1'
             displayMessage(chalk.red.bold('Invalid address. Setting address to: ' + receiver + '\n', chalk.gray('Use .receiver to change it.\n')))
@@ -109,7 +108,7 @@ emitter.on('ip', () => {
 emitter.on('name', () => {
     displayMessage(chalk.yellow('enter a valid username (letters A-Z, numbers and hyphens): \n'))
     prompt.get(['username'], function (err, result) {
-        clearPrompt('prompt: username: ' + result.username)
+        clearPrompt('username ' + result.username)
         if (err || !/^([a-zA-Z0-9]|-)+$/.test(result.username)) {
             author = 'default-' + Math.round(Math.random() * 100000000, 10)
             displayMessage(chalk.red.bold('Invalid username. Setting username to: ' + author + '\n', chalk.gray('Use .name to change it.\n')))
@@ -122,7 +121,7 @@ emitter.on('name', () => {
 
 emitter.on('message', () => {
     prompt.get(['message'], (err, result) => {
-        clearPrompt('prompt: message: ')
+        clearPrompt('message ' + result.message)
 
         let data
         let options
@@ -180,7 +179,9 @@ ${chalk.greenBright.bold('.exit')+ chalk.green(': close server and exit')}
                     message,
                     author
                 })
+                if (!(receiver === '127.0.0.1')) {
                 displayMessage(chalk.cyan.bold(author + ': ') + chalk.cyan(message))
+                }
                 emitter.emit('message')
         }
 
